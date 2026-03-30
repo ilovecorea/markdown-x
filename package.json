@@ -1,0 +1,187 @@
+{
+  "name": "markdown-x",
+  "displayName": "Markdown X",
+  "description": "Ultimate Markdown Viewer with TOC Navigation, Custom Themes, Image Lightbox, and Interactive Diagrams",
+  "version": "0.1.0",
+  "publisher": "your-name",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "viewer",
+    "preview",
+    "toc",
+    "mermaid",
+    "theme",
+    "lightbox"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onCommand:markdown-x.openPreview",
+    "onView:markdown-x-toc"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "markdown-x.openPreview",
+        "title": "Open Markdown X Preview",
+        "category": "Markdown X",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "markdown-x.openPreviewToSide",
+        "title": "Open Preview to the Side",
+        "category": "Markdown X",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "markdown-x.refreshPreview",
+        "title": "Refresh Preview",
+        "category": "Markdown X",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "markdown-x.changeTheme",
+        "title": "Change Theme",
+        "category": "Markdown X",
+        "icon": "$(color-mode)"
+      },
+      {
+        "command": "markdown-x.toggleToc",
+        "title": "Toggle TOC Visibility",
+        "category": "Markdown X",
+        "icon": "$(list-tree)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "markdown-x.openPreviewToSide",
+          "group": "navigation",
+          "when": "editorLangId == markdown"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "markdown-x.openPreview",
+          "group": "markdown-x@1",
+          "when": "editorLangId == markdown"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "markdown-x.openPreview",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "markdown-x.openPreviewToSide",
+          "when": "editorLangId == markdown"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "markdown-x-toc",
+          "name": "Markdown X TOC",
+          "when": "markdown-x:showToc",
+          "group": "markdown-x"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "markdown-x",
+          "title": "Markdown X",
+          "icon": "$(markdown)"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Markdown X",
+      "properties": {
+        "markdown-x.theme": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "light",
+            "dark",
+            "sepia"
+          ],
+          "enumDescriptions": [
+            "Follow VS Code theme",
+            "Light theme",
+            "Dark theme",
+            "Sepia theme (easy on eyes)"
+          ],
+          "description": "Preview theme"
+        },
+        "markdown-x.fontSize": {
+          "type": "number",
+          "default": 16,
+          "minimum": 10,
+          "maximum": 32,
+          "description": "Font size in pixels"
+        },
+        "markdown-x.lineHeight": {
+          "type": "number",
+          "default": 1.6,
+          "minimum": 1,
+          "maximum": 3,
+          "description": "Line height multiplier"
+        },
+        "markdown-x.enableMermaid": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Mermaid diagram rendering"
+        },
+        "markdown-x.enableImageLightbox": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable image lightbox on click"
+        },
+        "markdown-x.enableScrollSync": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable scroll synchronization between editor and preview"
+        },
+        "markdown-x.maxTocLevel": {
+          "type": "number",
+          "default": 6,
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Maximum heading level to show in TOC"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "marked": "^12.0.0",
+    "mermaid": "^10.0.0",
+    "katex": "^0.16.0",
+    "highlight.js": "^11.0.0"
+  }
+}
