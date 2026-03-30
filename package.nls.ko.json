@@ -1,0 +1,21 @@
+{
+  "markdown-x.commands.openPreview": "Markdown X 미리보기 열기",
+  "markdown-x.commands.openPreviewToSide": "옆에 미리보기 열기",
+  "markdown-x.commands.refreshPreview": "미리보기 새로고침",
+  "markdown-x.commands.changeTheme": "테마 변경",
+  "markdown-x.commands.toggleToc": "목차 표시 전환",
+  "markdown-x.configuration.title": "Markdown X",
+  "markdown-x.configuration.theme": "미리보기 테마",
+  "markdown-x.configuration.theme.enum.auto": "VS Code 테마 따르기",
+  "markdown-x.configuration.theme.enum.light": "라이트 테마",
+  "markdown-x.configuration.theme.enum.dark": "다크 테마",
+  "markdown-x.configuration.theme.enum.sepia": "세피아 테마 (눈에 편안)",
+  "markdown-x.configuration.fontSize": "글꼴 크기 (픽셀)",
+  "markdown-x.configuration.lineHeight": "줄 높이 배율",
+  "markdown-x.configuration.enableMermaid": "Mermaid 다이어그램 렌더링 활성화",
+  "markdown-x.configuration.enableImageLightbox": "이미지 라이트박스 활성화",
+  "markdown-x.configuration.enableScrollSync": "편집기와 미리보기 간 스크롤 동기화 활성화",
+  "markdown-x.configuration.maxTocLevel": "목차에 표시할 최대 헤딩 레벨",
+  "markdown-x.views.toc": "Markdown X 목차",
+  "markdown-x.viewsContainers.activitybar.title": "Markdown X"
+}

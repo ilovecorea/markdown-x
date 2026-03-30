@@ -3,9 +3,37 @@
   "displayName": "Markdown X",
   "description": "Ultimate Markdown Viewer with TOC Navigation, Custom Themes, Image Lightbox, and Interactive Diagrams",
   "version": "0.1.0",
-  "publisher": "your-name",
+  "publisher": "ilovecorea",
   "engines": {
     "vscode": "^1.74.0"
+  },
+  "contributionTypes": {
+    "language": [
+      {
+        "id": "en",
+        "translations": [
+          {
+            "id": "en",
+            "path": "./package.nls.json"
+          }
+        ]
+      },
+      {
+        "id": "ko",
+        "translations": [
+          {
+            "id": "ko",
+            "path": "./package.nls.ko.json"
+          }
+        ]
+      }
+    ]
+  },
+  "localizedResources": {
+    "package": [
+      "./package.nls.json",
+      "./package.nls.ko.json"
+    ]
   },
   "categories": [
     "Programming Languages",
@@ -31,31 +59,31 @@
     "commands": [
       {
         "command": "markdown-x.openPreview",
-        "title": "Open Markdown X Preview",
+        "title": "%markdown-x.commands.openPreview%",
         "category": "Markdown X",
         "icon": "$(open-preview)"
       },
       {
         "command": "markdown-x.openPreviewToSide",
-        "title": "Open Preview to the Side",
+        "title": "%markdown-x.commands.openPreviewToSide%",
         "category": "Markdown X",
         "icon": "$(open-preview)"
       },
       {
         "command": "markdown-x.refreshPreview",
-        "title": "Refresh Preview",
+        "title": "%markdown-x.commands.refreshPreview%",
         "category": "Markdown X",
         "icon": "$(refresh)"
       },
       {
         "command": "markdown-x.changeTheme",
-        "title": "Change Theme",
+        "title": "%markdown-x.commands.changeTheme%",
         "category": "Markdown X",
         "icon": "$(color-mode)"
       },
       {
         "command": "markdown-x.toggleToc",
-        "title": "Toggle TOC Visibility",
+        "title": "%markdown-x.commands.toggleToc%",
         "category": "Markdown X",
         "icon": "$(list-tree)"
       }
@@ -90,7 +118,7 @@
       "explorer": [
         {
           "id": "markdown-x-toc",
-          "name": "Markdown X TOC",
+          "name": "%markdown-x.views.toc%",
           "when": "markdown-x:showToc",
           "group": "markdown-x"
         }
@@ -100,13 +128,13 @@
       "activitybar": [
         {
           "id": "markdown-x",
-          "title": "Markdown X",
+          "title": "%markdown-x.viewsContainers.activitybar.title%",
           "icon": "$(markdown)"
         }
       ]
     },
     "configuration": {
-      "title": "Markdown X",
+      "title": "%markdown-x.configuration.title%",
       "properties": {
         "markdown-x.theme": {
           "type": "string",
@@ -118,48 +146,48 @@
             "sepia"
           ],
           "enumDescriptions": [
-            "Follow VS Code theme",
-            "Light theme",
-            "Dark theme",
-            "Sepia theme (easy on eyes)"
+            "%markdown-x.configuration.theme.enum.auto%",
+            "%markdown-x.configuration.theme.enum.light%",
+            "%markdown-x.configuration.theme.enum.dark%",
+            "%markdown-x.configuration.theme.enum.sepia%"
           ],
-          "description": "Preview theme"
+          "description": "%markdown-x.configuration.theme%"
         },
         "markdown-x.fontSize": {
           "type": "number",
           "default": 16,
           "minimum": 10,
           "maximum": 32,
-          "description": "Font size in pixels"
+          "description": "%markdown-x.configuration.fontSize%"
         },
         "markdown-x.lineHeight": {
           "type": "number",
           "default": 1.6,
           "minimum": 1,
           "maximum": 3,
-          "description": "Line height multiplier"
+          "description": "%markdown-x.configuration.lineHeight%"
         },
         "markdown-x.enableMermaid": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Mermaid diagram rendering"
+          "description": "%markdown-x.configuration.enableMermaid%"
         },
         "markdown-x.enableImageLightbox": {
           "type": "boolean",
           "default": true,
-          "description": "Enable image lightbox on click"
+          "description": "%markdown-x.configuration.enableImageLightbox%"
         },
         "markdown-x.enableScrollSync": {
           "type": "boolean",
           "default": true,
-          "description": "Enable scroll synchronization between editor and preview"
+          "description": "%markdown-x.configuration.enableScrollSync%"
         },
         "markdown-x.maxTocLevel": {
           "type": "number",
           "default": 6,
           "minimum": 1,
           "maximum": 6,
-          "description": "Maximum heading level to show in TOC"
+          "description": "%markdown-x.configuration.maxTocLevel%"
         }
       }
     }

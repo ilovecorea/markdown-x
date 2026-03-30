@@ -1,0 +1,21 @@
+{
+  "markdown-x.commands.openPreview": "Open Markdown X Preview",
+  "markdown-x.commands.openPreviewToSide": "Open Preview to the Side",
+  "markdown-x.commands.refreshPreview": "Refresh Preview",
+  "markdown-x.commands.changeTheme": "Change Theme",
+  "markdown-x.commands.toggleToc": "Toggle TOC Visibility",
+  "markdown-x.configuration.title": "Markdown X",
+  "markdown-x.configuration.theme": "Preview theme",
+  "markdown-x.configuration.theme.enum.auto": "Follow VS Code theme",
+  "markdown-x.configuration.theme.enum.light": "Light theme",
+  "markdown-x.configuration.theme.enum.dark": "Dark theme",
+  "markdown-x.configuration.theme.enum.sepia": "Sepia theme (easy on eyes)",
+  "markdown-x.configuration.fontSize": "Font size in pixels",
+  "markdown-x.configuration.lineHeight": "Line height multiplier",
+  "markdown-x.configuration.enableMermaid": "Enable Mermaid diagram rendering",
+  "markdown-x.configuration.enableImageLightbox": "Enable image lightbox on click",
+  "markdown-x.configuration.enableScrollSync": "Enable scroll synchronization between editor and preview",
+  "markdown-x.configuration.maxTocLevel": "Maximum heading level to show in TOC",
+  "markdown-x.views.toc": "Markdown X TOC",
+  "markdown-x.viewsContainers.activitybar.title": "Markdown X"
+}

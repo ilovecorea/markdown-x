@@ -83,7 +83,3 @@ Press `F5` in VS Code to open a new Extension Development Host window.
 ## 📄 License
 
 MIT License - see LICENSE file for details.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
