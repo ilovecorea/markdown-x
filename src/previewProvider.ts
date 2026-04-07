@@ -4,13 +4,18 @@ import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { parseMarkdown } from './markdownParser';
 
+interface PanelState {
+    panel: vscode.WebviewPanel;
+    document: vscode.TextDocument;
+    initialized: boolean;
+    scrollSyncEnabled: boolean;
+    previewFocused: boolean;
+}
+
 export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
-    private panel: vscode.WebviewPanel | undefined;
-    private currentDocument: vscode.TextDocument | undefined;
+    private panels = new Map<string, PanelState>();
     private extensionUri: vscode.Uri;
     private cachedCustomCss: string = '';
-    private scrollSyncEnabled = false;
-    private previewFocused = false;
     private lastCustomCssPath: string = '';
 
     constructor(extensionUri: vscode.Uri) {
@@ -21,45 +26,58 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
         webviewPanel: vscode.WebviewPanel,
         state: unknown
     ): Promise<void> {
-        this.panel = webviewPanel;
-        this.initialized = false;
-        this.setupWebview();
-
-        // Re-render content from the active markdown editor
+        // Try to find the matching document
+        let doc: vscode.TextDocument | undefined;
         const editor = vscode.window.activeTextEditor;
         if (editor && editor.document.languageId === 'markdown') {
-            this.currentDocument = editor.document;
-            this.updateContent(editor.document);
+            doc = editor.document;
         } else {
-            for (const doc of vscode.workspace.textDocuments) {
-                if (doc.languageId === 'markdown') {
-                    this.currentDocument = doc;
-                    this.updateContent(doc);
+            for (const d of vscode.workspace.textDocuments) {
+                if (d.languageId === 'markdown') {
+                    doc = d;
                     break;
                 }
             }
         }
 
+        if (!doc) {
+            webviewPanel.dispose();
+            return;
+        }
+
+        const key = doc.fileName;
+        const ps: PanelState = {
+            panel: webviewPanel,
+            document: doc,
+            initialized: false,
+            scrollSyncEnabled: false,
+            previewFocused: false,
+        };
+        this.panels.set(key, ps);
+        this.setupWebview(key);
+        this.updateContent(doc);
+
         vscode.commands.executeCommand('setContext', 'markdown-x:previewOpen', true);
+        setTimeout(() => { webviewPanel.reveal(undefined, true); }, 500);
         setTimeout(() => {
-            webviewPanel.reveal(undefined, true);
-        }, 500);
-        // Delay scroll sync activation to prevent forced scroll on restore
-        this.scrollSyncEnabled = false;
-        setTimeout(() => { this.scrollSyncEnabled = true; }, 3000);
+            const s = this.panels.get(key);
+            if (s) s.scrollSyncEnabled = true;
+        }, 3000);
     }
 
     openPreview(document: vscode.TextDocument, toSide: boolean): void {
-        this.currentDocument = document;
+        const key = document.fileName;
+        const existing = this.panels.get(key);
 
-        if (this.panel) {
-            this.panel.reveal(toSide ? vscode.ViewColumn.Two : vscode.ViewColumn.One);
-            this.initialized = false;
+        if (existing) {
+            existing.panel.reveal(toSide ? vscode.ViewColumn.Two : vscode.ViewColumn.One);
+            existing.initialized = false;
+            existing.document = document;
             this.updateContent(document);
             return;
         }
 
-        this.panel = vscode.window.createWebviewPanel(
+        const panel = vscode.window.createWebviewPanel(
             'markdown-x-preview',
             `Preview: ${path.basename(document.fileName)}`,
             toSide ? vscode.ViewColumn.Two : vscode.ViewColumn.One,
@@ -73,36 +91,47 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
             }
         );
 
-        this.setupWebview();
+        const ps: PanelState = {
+            panel,
+            document,
+            initialized: false,
+            scrollSyncEnabled: false,
+            previewFocused: false,
+        };
+        this.panels.set(key, ps);
+        this.setupWebview(key);
         this.updateContent(document);
         vscode.commands.executeCommand('setContext', 'markdown-x:previewOpen', true);
-        this.scrollSyncEnabled = false;
-        setTimeout(() => { this.scrollSyncEnabled = true; }, 2000);
+        setTimeout(() => {
+            const s = this.panels.get(key);
+            if (s) s.scrollSyncEnabled = true;
+        }, 2000);
     }
 
-    private setupWebview(): void {
-        if (!this.panel) return;
+    private setupWebview(key: string): void {
+        const ps = this.panels.get(key);
+        if (!ps) return;
 
-        this.panel.onDidDispose(
+        ps.panel.onDidDispose(
             () => {
-                this.panel = undefined;
-                this.initialized = false;
-                this.previewFocused = false;
-                vscode.commands.executeCommand('setContext', 'markdown-x:previewOpen', false);
+                this.panels.delete(key);
+                if (this.panels.size === 0) {
+                    vscode.commands.executeCommand('setContext', 'markdown-x:previewOpen', false);
+                }
             },
             null,
             []
         );
 
-        this.panel.onDidChangeViewState(
+        ps.panel.onDidChangeViewState(
             (e) => {
-                this.previewFocused = e.webviewPanel.active;
+                ps.previewFocused = e.webviewPanel.active;
             },
             null,
             []
         );
 
-        this.panel.webview.onDidReceiveMessage(
+        ps.panel.webview.onDidReceiveMessage(
             async (message) => {
                 switch (message.type) {
                     case 'scroll': {
@@ -114,7 +143,7 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
                         const next = Math.max(10, Math.min(32, current + message.delta));
                         if (next !== current) {
                             config.update('fontSize', next, true);
-                            this.refresh();
+                            this.refreshAll();
                         }
                         break;
                     }
@@ -123,8 +152,8 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
                         if (linkPath.startsWith('http')) {
                             vscode.env.openExternal(vscode.Uri.parse(linkPath));
                         } else {
-                            const docDir = this.currentDocument?.fileName
-                                ? path.dirname(this.currentDocument.fileName)
+                            const docDir = ps.document?.fileName
+                                ? path.dirname(ps.document.fileName)
                                 : '';
                             const fullPath = path.isAbsolute(linkPath)
                                 ? linkPath
@@ -139,15 +168,12 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
                         break;
                     }
                     case 'insertPageBreak': {
-                        if (!this.currentDocument) break;
-                        const doc = this.currentDocument;
+                        const doc = ps.document;
+                        if (!doc) break;
                         const text = doc.getText();
                         const lines = text.split('\n');
 
-                        // Find the source line for the element
-                        // Strategy: count block elements (pre, table, blockquote, mermaid, p, h, ul, ol, hr) in order
                         const targetIndex = message.elementIndex;
-                        const tag = message.elementTag;
                         let blockCount = 0;
                         let insertLine = 0;
 
@@ -156,7 +182,6 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
                             const line = lines[i].trim();
                             if (line.startsWith('```')) {
                                 if (!inCodeBlock) {
-                                    // Start of code block — this is a block element
                                     if (blockCount === targetIndex) {
                                         insertLine = i;
                                         break;
@@ -168,12 +193,11 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
                             }
                             if (inCodeBlock) continue;
 
-                            // Count block-level elements
-                            const isBlock = line.match(/^#{1,6}\s/) || // heading
-                                line.match(/^[>|*\-+]/) ||            // blockquote, list, hr
-                                line.match(/^\d+\./) ||                // ordered list
-                                line.match(/^\|/) ||                    // table
-                                (line === '---' || line === '***' || line === '___'); // hr
+                            const isBlock = line.match(/^#{1,6}\s/) ||
+                                line.match(/^[>|*\-+]/) ||
+                                line.match(/^\d+\./) ||
+                                line.match(/^\|/) ||
+                                (line === '---' || line === '***' || line === '___');
 
                             if (isBlock || (line.length > 0 && i > 0 && lines[i-1].trim() === '')) {
                                 if (blockCount === targetIndex) {
@@ -184,7 +208,6 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
                             }
                         }
 
-                        // Insert pagebreak comment before the element
                         const editor = vscode.window.visibleTextEditors.find(
                             e => e.document.fileName === doc.fileName
                         );
@@ -200,14 +223,13 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
                         break;
                     }
                     case 'updateMermaidScale': {
-                        if (!this.currentDocument) break;
-                        const doc = this.currentDocument;
+                        const doc = ps.document;
+                        if (!doc) break;
                         const text = doc.getText();
                         const lines = text.split('\n');
                         const mermaidIndex = message.mermaidIndex as number;
                         const scale = message.scale as number;
 
-                        // Find the Nth ```mermaid block
                         let count = 0;
                         let targetLine = -1;
                         for (let i = 0; i < lines.length; i++) {
@@ -226,13 +248,11 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
                         );
                         if (!editor) break;
 
-                        // Check if line above is already a mermaid-scale comment
                         const prevLine = targetLine > 0 ? lines[targetLine - 1].trim() : '';
                         const hasExisting = prevLine.match(/^<!--\s*mermaid-scale:\s*\d+%?\s*-->$/);
 
                         await editor.edit(editBuilder => {
                             if (scale === 100) {
-                                // Remove scale comment if resetting to 100%
                                 if (hasExisting) {
                                     const range = new vscode.Range(
                                         new vscode.Position(targetLine - 1, 0),
@@ -241,14 +261,12 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
                                     editBuilder.delete(range);
                                 }
                             } else if (hasExisting) {
-                                // Update existing comment
                                 const range = new vscode.Range(
                                     new vscode.Position(targetLine - 1, 0),
                                     new vscode.Position(targetLine - 1, lines[targetLine - 1].length)
                                 );
                                 editBuilder.replace(range, `<!-- mermaid-scale: ${scale}% -->`);
                             } else {
-                                // Insert new comment above ```mermaid
                                 const pos = new vscode.Position(targetLine, 0);
                                 editBuilder.insert(pos, `<!-- mermaid-scale: ${scale}% -->\n`);
                             }
@@ -262,64 +280,90 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
         );
     }
 
-    private initialized = false;
     updateContent(document: vscode.TextDocument): void {
-        if (!this.panel) return;
-        if (this.currentDocument?.fileName !== document.fileName) return;
+        const ps = this.panels.get(document.fileName);
+        if (!ps) return;
 
-        if (!this.initialized) {
-            // First render: set full HTML
-            const html = this.generateHtml(document.getText(), document.fileName);
-            this.panel.webview.html = html;
-            this.initialized = true;
+        if (!ps.initialized) {
+            const html = this.generateHtml(ps, document.getText(), document.fileName);
+            ps.panel.webview.html = html;
+            ps.initialized = true;
         } else {
-            // Subsequent renders: update content only via message
-            const htmlContent = this.renderMarkdown(document.getText(), document.fileName);
-            this.panel.webview.postMessage({ type: 'updateContent', html: htmlContent });
+            const htmlContent = this.renderMarkdown(ps.panel.webview, document.getText(), document.fileName);
+            ps.panel.webview.postMessage({ type: 'updateContent', html: htmlContent });
         }
-        this.panel.title = `Preview: ${path.basename(document.fileName)}`;
+        ps.panel.title = `Preview: ${path.basename(document.fileName)}`;
     }
 
     updateTheme(theme: string): void {
-        this.panel?.webview.postMessage({ type: 'theme', theme });
+        for (const ps of this.panels.values()) {
+            ps.panel.webview.postMessage({ type: 'theme', theme });
+        }
     }
 
-    scrollToLine(line: number): void {
-        if (!this.scrollSyncEnabled || this.previewFocused) return;
-        this.panel?.webview.postMessage({ type: 'scrollToLine', line });
+    scrollToLine(document: vscode.TextDocument, line: number): void {
+        const ps = this.panels.get(document.fileName);
+        if (!ps || !ps.scrollSyncEnabled || ps.previewFocused) return;
+        ps.panel.webview.postMessage({ type: 'scrollToLine', line });
     }
 
+    /** Returns the document of the currently focused preview, or the first open one */
     getCurrentDocument(): vscode.TextDocument | undefined {
-        return this.currentDocument;
+        for (const ps of this.panels.values()) {
+            if (ps.previewFocused) return ps.document;
+        }
+        // Fallback: return first panel's document
+        const first = this.panels.values().next();
+        return first.done ? undefined : first.value.document;
+    }
+
+    /** Returns the document for a specific panel by file path */
+    getDocumentForFile(fileName: string): vscode.TextDocument | undefined {
+        return this.panels.get(fileName)?.document;
+    }
+
+    hasPanel(fileName: string): boolean {
+        return this.panels.has(fileName);
     }
 
     refresh(): void {
-        if (this.currentDocument) {
-            this.initialized = false; // Force full HTML rebuild
-            this.updateContent(this.currentDocument);
+        // Refresh the focused panel, or all if none focused
+        for (const ps of this.panels.values()) {
+            if (ps.previewFocused) {
+                ps.initialized = false;
+                this.updateContent(ps.document);
+                return;
+            }
+        }
+        this.refreshAll();
+    }
+
+    refreshAll(): void {
+        for (const ps of this.panels.values()) {
+            ps.initialized = false;
+            this.updateContent(ps.document);
         }
     }
 
     dispose(): void {
-        this.panel?.dispose();
+        for (const ps of this.panels.values()) {
+            ps.panel.dispose();
+        }
+        this.panels.clear();
     }
 
-    private renderMarkdown(content: string, filePath: string): string {
-        const webview = this.panel?.webview;
+    private renderMarkdown(webview: vscode.Webview, content: string, filePath: string): string {
         const docDir = path.dirname(filePath);
 
         return parseMarkdown(content, {
             resolveImageUri: (src: string) => {
                 const absPath = path.isAbsolute(src) ? src : path.join(docDir, src);
-                if (webview) {
-                    return webview.asWebviewUri(vscode.Uri.file(absPath)).toString();
-                }
-                return src;
+                return webview.asWebviewUri(vscode.Uri.file(absPath)).toString();
             }
         });
     }
 
-    private generateHtml(content: string, filePath: string): string {
+    private generateHtml(ps: PanelState, content: string, filePath: string): string {
         const config = vscode.workspace.getConfiguration('markdown-x');
         const theme = config.get<string>('theme', 'auto');
         const fontSize = config.get<number>('fontSize', 16);
@@ -332,7 +376,7 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
         const customCssPath = config.get<string>('customCssPath', '');
         const customCss = config.get<string>('customCss', '');
 
-        const htmlContent = this.renderMarkdown(content, filePath);
+        const htmlContent = this.renderMarkdown(ps.panel.webview, content, filePath);
 
         // Load custom CSS file (cached)
         let customCssFileContent = '';
@@ -357,7 +401,7 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
         const nonce = crypto.randomBytes(16).toString('base64');
 
         // Webview URI for local resources
-        const webview = this.panel!.webview;
+        const webview = ps.panel.webview;
         const cspSource = webview.cspSource;
 
         return `<!DOCTYPE html>

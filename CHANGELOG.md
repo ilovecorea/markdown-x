@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5 (2026-04-07)
+
+- Explorer context menu: right-click .md file to open preview
+- Multiple independent preview panels (one per file)
+- Per-file scroll sync and document change tracking
+
 ## 0.1.4 (2026-04-06)
 
 - Fix scroll jump when switching files during preview

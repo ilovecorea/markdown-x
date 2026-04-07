@@ -2,7 +2,7 @@
   "name": "markdown-x",
   "displayName": "Markdown X",
   "description": "Ultimate Markdown Viewer with PDF/Word export, page-aware layout, Mermaid diagrams, KaTeX math, and custom themes",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "xieum-cloud",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -216,6 +216,13 @@
           "command": "markdown-x.openPreview",
           "group": "markdown-x@1",
           "when": "editorLangId == markdown"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "markdown-x.openPreview",
+          "group": "navigation@99",
+          "when": "resourceLangId == markdown"
         }
       ],
       "commandPalette": [

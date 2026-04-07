@@ -24,9 +24,16 @@ export function activate(context: vscode.ExtensionContext) {
         )
     );
 
-    // Open Preview (always opens to the side)
+    // Open Preview — from editor, editor context menu, or explorer context menu
     context.subscriptions.push(
-        vscode.commands.registerCommand('markdown-x.openPreview', () => {
+        vscode.commands.registerCommand('markdown-x.openPreview', async (uri?: vscode.Uri) => {
+            // Explorer context menu passes a URI argument
+            if (uri) {
+                const doc = await vscode.workspace.openTextDocument(uri);
+                previewProvider.openPreview(doc, true);
+                return;
+            }
+            // Editor or command palette
             const editor = vscode.window.activeTextEditor;
             if (!editor) {
                 vscode.window.showWarningMessage('Markdown X: No active editor found');
@@ -56,14 +63,14 @@ export function activate(context: vscode.ExtensionContext) {
             const current = config.get<number>('fontSize', 16);
             const next = Math.min(current + 2, 32);
             await config.update('fontSize', next, true);
-            previewProvider.refresh();
+            previewProvider.refreshAll();
         }),
         vscode.commands.registerCommand('markdown-x.decreaseFontSize', async () => {
             const config = vscode.workspace.getConfiguration('markdown-x');
             const current = config.get<number>('fontSize', 16);
             const next = Math.max(current - 2, 10);
             await config.update('fontSize', next, true);
-            previewProvider.refresh();
+            previewProvider.refreshAll();
         }),
     );
 
@@ -99,7 +106,7 @@ export function activate(context: vscode.ExtensionContext) {
                 size = parseInt(input, 10);
             }
             await config.update('fontSize', size, true);
-            previewProvider.refresh();
+            previewProvider.refreshAll();
         }),
     );
 
@@ -137,7 +144,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             await config.update('fontFamily', fontValue, true);
-            previewProvider.refresh();
+            previewProvider.refreshAll();
         }),
     );
 
@@ -155,7 +162,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
             if (selected) {
                 await vscode.workspace.getConfiguration('markdown-x').update('theme', selected.value, true);
-                previewProvider.refresh();
+                previewProvider.refreshAll();
             }
         }),
     );
@@ -193,7 +200,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
             if (selected) {
                 await config.update('pdf.pageSize', selected.value, true);
-                previewProvider.refresh();
+                previewProvider.refreshAll();
             }
         }),
     );
@@ -225,7 +232,7 @@ export function activate(context: vscode.ExtensionContext) {
                 marginValue = input;
             }
             await config.update('pdf.margin', marginValue, true);
-            previewProvider.refresh();
+            previewProvider.refreshAll();
         }),
     );
 
@@ -252,39 +259,45 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('markdown-x.print', markdownGuard(printDocument)),
     );
 
-    // Document change listener (debounced)
-    let updateTimer: ReturnType<typeof setTimeout> | undefined;
+    // Document change listener — update the matching preview panel
+    let updateTimers = new Map<string, ReturnType<typeof setTimeout>>();
     context.subscriptions.push(
         vscode.workspace.onDidChangeTextDocument((e) => {
             if (e.document.languageId === 'markdown') {
-                if (updateTimer) clearTimeout(updateTimer);
-                updateTimer = setTimeout(() => {
+                const key = e.document.fileName;
+                const existing = updateTimers.get(key);
+                if (existing) clearTimeout(existing);
+                updateTimers.set(key, setTimeout(() => {
+                    updateTimers.delete(key);
                     previewProvider.updateContent(e.document);
-                }, 300);
+                }, 300));
             }
         })
     );
 
-    // Editor scroll -> preview scroll sync (with debounce to prevent loop)
-    let scrollSyncTimer: ReturnType<typeof setTimeout> | undefined;
-    let lastScrollLine = -1;
+    // Editor scroll -> preview scroll sync
+    let scrollSyncTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    let lastScrollLines = new Map<string, number>();
     context.subscriptions.push(
         vscode.window.onDidChangeTextEditorVisibleRanges((e) => {
             const enableScrollSync = vscode.workspace.getConfiguration('markdown-x')
                 .get<boolean>('enableScrollSync', true);
             if (!enableScrollSync) return;
-            // Only sync scroll for the document currently being previewed
-            const previewDoc = previewProvider.getCurrentDocument();
-            if (!previewDoc || e.textEditor.document !== previewDoc) return;
-            if (e.textEditor.document.languageId === 'markdown' && e.visibleRanges.length > 0) {
-                const topLine = e.visibleRanges[0].start.line;
-                if (topLine === lastScrollLine) return;
-                lastScrollLine = topLine;
-                if (scrollSyncTimer) clearTimeout(scrollSyncTimer);
-                scrollSyncTimer = setTimeout(() => {
-                    previewProvider.scrollToLine(topLine);
-                }, 200);
-            }
+            const doc = e.textEditor.document;
+            if (doc.languageId !== 'markdown' || e.visibleRanges.length === 0) return;
+            // Only sync if this document has an open preview panel
+            if (!previewProvider.hasPanel(doc.fileName)) return;
+
+            const topLine = e.visibleRanges[0].start.line;
+            if (topLine === lastScrollLines.get(doc.fileName)) return;
+            lastScrollLines.set(doc.fileName, topLine);
+
+            const existing = scrollSyncTimers.get(doc.fileName);
+            if (existing) clearTimeout(existing);
+            scrollSyncTimers.set(doc.fileName, setTimeout(() => {
+                scrollSyncTimers.delete(doc.fileName);
+                previewProvider.scrollToLine(doc, topLine);
+            }, 200));
         })
     );
 }
