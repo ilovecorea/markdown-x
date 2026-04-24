@@ -12,6 +12,7 @@
   "markdown-x.commands.togglePagePreview": "Mx: Page Preview",
   "markdown-x.commands.changePageSize": "Mx: Change Page Size",
   "markdown-x.commands.changeMargin": "Mx: Change Page Margin",
+  "markdown-x.commands.configureKeybindings": "Mx: Configure Keyboard Shortcuts...",
   "markdown-x.configuration.title": "Markdown X",
   "markdown-x.configuration.theme": "Preview theme",
   "markdown-x.configuration.theme.enum.auto": "Follow VS Code theme",

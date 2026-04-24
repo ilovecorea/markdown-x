@@ -2,7 +2,7 @@
   "name": "markdown-x",
   "displayName": "Markdown X",
   "description": "Ultimate Markdown Viewer with PDF/Word export, page-aware layout, Mermaid diagrams, KaTeX math, and custom themes",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "publisher": "xieum-cloud",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -46,7 +46,8 @@
     "onCommand:markdown-x.openPreview",
     "onCommand:markdown-x.exportPdf",
     "onCommand:markdown-x.exportDocx",
-    "onCommand:markdown-x.print"
+    "onCommand:markdown-x.print",
+    "onWebviewPanel:markdown-x-preview"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -151,6 +152,12 @@
         "title": "%markdown-x.commands.changeMargin%",
         "category": "Markdown X",
         "icon": "$(layout)"
+      },
+      {
+        "command": "markdown-x.configureKeybindings",
+        "title": "%markdown-x.commands.configureKeybindings%",
+        "category": "Markdown X",
+        "icon": "$(keyboard)"
       }
     ],
     "menus": {
@@ -208,6 +215,11 @@
         {
           "command": "markdown-x.refreshPreview",
           "group": "1_mx@7",
+          "when": "editorLangId == markdown || activeWebviewPanelId == markdown-x-preview"
+        },
+        {
+          "command": "markdown-x.configureKeybindings",
+          "group": "1_mx@8",
           "when": "editorLangId == markdown || activeWebviewPanelId == markdown-x-preview"
         }
       ],
@@ -268,6 +280,10 @@
         },
         {
           "command": "markdown-x.changeMargin",
+          "when": "true"
+        },
+        {
+          "command": "markdown-x.configureKeybindings",
           "when": "true"
         }
       ]

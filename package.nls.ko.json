@@ -12,6 +12,7 @@
   "markdown-x.commands.togglePagePreview": "Mx: 페이지 미리보기",
   "markdown-x.commands.changePageSize": "Mx: 용지 크기 변경",
   "markdown-x.commands.changeMargin": "Mx: 여백 변경",
+  "markdown-x.commands.configureKeybindings": "Mx: 키보드 단축키 설정...",
   "markdown-x.configuration.title": "Markdown X",
   "markdown-x.configuration.theme": "미리보기 테마",
   "markdown-x.configuration.theme.enum.auto": "VS Code 테마 따르기",

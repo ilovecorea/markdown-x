@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7 (2026-04-22)
+
+- Fix blank preview after VS Code restart when only preview panel remained
+- Add "Configure Keyboard Shortcuts..." command for easy key binding management
+- Restrict toolbar buttons to markdown editor / preview panel (hide on Claude chat and other tabs)
+- Harden lightbox CSS against host style interference
+- Handle file:// protocol in image paths
+
 ## 0.1.6 (2026-04-08)
 
 - Fix image loading for files outside document directory (workspace-wide resource access)

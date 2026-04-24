@@ -26,17 +26,41 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
         webviewPanel: vscode.WebviewPanel,
         state: unknown
     ): Promise<void> {
-        // Try to find the matching document
+        // Extract file path from state (set via vscode.setState in the webview)
+        const filePath = (state as { filePath?: string } | undefined)?.filePath;
+        const titleBasename = webviewPanel.title.replace(/^Preview:\s*/, '').trim();
+
         let doc: vscode.TextDocument | undefined;
-        const editor = vscode.window.activeTextEditor;
-        if (editor && editor.document.languageId === 'markdown') {
-            doc = editor.document;
-        } else {
-            for (const d of vscode.workspace.textDocuments) {
-                if (d.languageId === 'markdown') {
-                    doc = d;
-                    break;
+
+        if (filePath) {
+            try {
+                doc = await vscode.workspace.openTextDocument(filePath);
+            } catch {
+                // File no longer exists or cannot be opened
+            }
+        }
+
+        // Fallback 1: find a workspace file matching the title basename
+        if (!doc && titleBasename) {
+            try {
+                const matches = await vscode.workspace.findFiles(
+                    `**/${titleBasename}`,
+                    '**/node_modules/**',
+                    1
+                );
+                if (matches.length > 0) {
+                    doc = await vscode.workspace.openTextDocument(matches[0]);
                 }
+            } catch {
+                // Ignore
+            }
+        }
+
+        // Fallback 2: active markdown editor
+        if (!doc) {
+            const editor = vscode.window.activeTextEditor;
+            if (editor && editor.document.languageId === 'markdown') {
+                doc = editor.document;
             }
         }
 
@@ -46,6 +70,16 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
         }
 
         const key = doc.fileName;
+        // Webview options are not persisted across reloads — restore them here
+        webviewPanel.webview.options = {
+            enableScripts: true,
+            localResourceRoots: [
+                this.extensionUri,
+                vscode.Uri.file(path.dirname(doc.fileName)),
+                ...(vscode.workspace.workspaceFolders?.map(f => f.uri) || [])
+            ]
+        };
+
         const ps: PanelState = {
             panel: webviewPanel,
             document: doc,
@@ -58,7 +92,6 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
         this.updateContent(doc);
 
         vscode.commands.executeCommand('setContext', 'markdown-x:previewOpen', true);
-        setTimeout(() => { webviewPanel.reveal(undefined, true); }, 500);
         setTimeout(() => {
             const s = this.panels.get(key);
             if (s) s.scrollSyncEnabled = true;
@@ -621,6 +654,8 @@ export class MarkdownPreviewProvider implements vscode.WebviewPanelSerializer {
     <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
 
+        // Persist file path so deserializeWebviewPanel can restore the correct document
+        vscode.setState({ filePath: ${JSON.stringify(filePath)} });
 
         ${enableMermaid ? `
         if (typeof mermaid !== 'undefined') {

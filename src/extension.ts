@@ -56,6 +56,16 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    // Configure Keyboard Shortcuts — open Keyboard Shortcuts UI filtered to markdown-x
+    context.subscriptions.push(
+        vscode.commands.registerCommand('markdown-x.configureKeybindings', () => {
+            vscode.commands.executeCommand(
+                'workbench.action.openGlobalKeybindings',
+                'markdown-x'
+            );
+        })
+    );
+
     // Font size +/-
     context.subscriptions.push(
         vscode.commands.registerCommand('markdown-x.increaseFontSize', async () => {
